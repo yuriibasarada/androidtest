@@ -1,5 +1,9 @@
-const {remote} = require("webdriverio");
-
+import {remote} from "webdriverio";
+import {expect} from "chai";
+import * as fs from "fs";
+import tf from '@tensorflow/tfjs-node'
+import {exec} from 'child_process'
+import mobilenet from '@tensorflow-models/mobilenet'
 
 const capabilities = {
   platformName: 'Android',
@@ -18,10 +22,10 @@ const wdOpts = {
 
 
 async function runTest() {
-  await toggleWifi()
-  await launchAppAndGetResponse()
   await toggleWifi(true)
-  await launchAppAndGetResponse()
+  await launchAppAndGetResponse('no_wifi')
+  await toggleWifi(false)
+  await launchAppAndGetResponse('wifi')
 }
 
 async function toggleWifi(val = false) {
@@ -51,8 +55,16 @@ async function toggleWifi(val = false) {
   }
 }
 
+async function analyzeScreenshot(filePath) {
+  const image = fs.readFileSync(filePath);
+  const decodedImage = tf.node.decodeImage(image, 3);
+  const model = await mobilenet.load();
+  const predictions = await model.classify(decodedImage);
 
-async function launchAppAndGetResponse(appActivity = 'com.google.android.finsky.activities.MainActivity', appPackage = 'com.android.vending') {
+  return predictions;
+}
+
+async function launchAppAndGetResponse(filename = 'result', appActivity = 'com.google.android.finsky.activities.MainActivity', appPackage = 'com.android.vending') {
   const capabilities = {
     platformName: 'Android',
     'appium:automationName': 'UiAutomator2',
@@ -61,22 +73,36 @@ async function launchAppAndGetResponse(appActivity = 'com.google.android.finsky.
     'appium:appActivity': appActivity,
   };
 
+
   const driver = await remote({
     ...wdOpts,
     capabilities
   });
 
-  await driver.pause(1000);
-
+  await driver.pause(2000);
   try {
-    const pageSource = await driver.getPageSource();
-    console.log(pageSource)
+    const screenshotPathNoInternet = `${filename}.png`;
+    await driver.saveScreenshot(screenshotPathNoInternet);
+
+    const predictionsNoInternet = await analyzeScreenshot(screenshotPathNoInternet);
+    console.log('Predictions without internet:', predictionsNoInternet);
+
+
+    exec(`adb logcat -d > ${filename}.txt`, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error capturing logs: ${error}`);
+      }
+    });
+
+    // Expected condition
+    // const onlineMessage = await driver.$('selector_for_online_message');
+    // expect(await onlineMessage.isDisplayed()).to.be.true;
+
   } catch (error) {
     console.log(error)
   } finally {
     await driver.deleteSession();
   }
-
 }
 
 runTest().catch(console.error);

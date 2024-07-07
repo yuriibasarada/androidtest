@@ -2,6 +2,7 @@
   "name": "untitled",
   "version": "1.0.0",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -10,5 +11,11 @@
   "description": "",
   "devDependencies": {
     "webdriverio": "^8.39.1"
+  },
+  "dependencies": {
+    "@tensorflow-models/mobilenet": "^2.1.1",
+    "@tensorflow/tfjs": "^4.20.0",
+    "@tensorflow/tfjs-node": "^4.20.0",
+    "chai": "^5.1.1"
   }
 }
