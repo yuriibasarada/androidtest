@@ -22,9 +22,9 @@ const wdOpts = {
 
 
 async function runTest() {
-  await toggleWifi(true)
+  await toggleWifi()
   await launchAppAndGetResponse('no_wifi')
-  await toggleWifi(false)
+  await toggleWifi(true)
   await launchAppAndGetResponse('wifi')
 }
 
